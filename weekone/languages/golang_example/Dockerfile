@@ -1,4 +1,5 @@
 FROM golang:latest
 COPY . /usr/src/myapp/
 WORKDIR /usr/src/myapp/
-CMD ["go","hello.go"]
+RUN go build -o myapp hello.go
+CMD ["./myapp"]

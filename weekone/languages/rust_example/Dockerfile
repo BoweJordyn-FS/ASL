@@ -1,4 +1,5 @@
 FROM rust:latest
-COPY . /usr/src/myapp/
-WORKDIR /usr/src/myapp/
-CMD ["sh", "-c", "rustc hello.rs -o hello && ./hello"]
+WORKDIR /usr/src/myapp
+COPY . /usr/src/myapp
+RUN rustc hello.rs
+CMD [ "./hello" ]
