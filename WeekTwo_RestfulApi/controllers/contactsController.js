@@ -16,7 +16,7 @@ exports.getAllContacts = (req, res) => {
 		const filterOperator = req.get('X-Filter-Operator');
 		const filterValue = req.get('X-Filter-Value');
 
-		let data = ContactModel.index();
+		let data = [...ContactModel.index()];
 
 		//  Filtering -> Sorting -> Pagination
 		if (filterBy) {
