@@ -5,7 +5,7 @@ const {
 	filterContacts,
 } = require('../model/Contacts');
 
-const MAX_LIMIT = 20;
+const maxLimit = 20;
 
 exports.getAllContacts = (req, res) => {
 	try {
@@ -20,10 +20,10 @@ exports.getAllContacts = (req, res) => {
 			});
 		}
 
-		if (limit !== undefined && Number(limit) > MAX_LIMIT) {
+		if (limit !== undefined && Number(limit) > maxLimit) {
 			return res
 				.status(400)
-				.json({ message: `The limit per page cannot exceed ${MAX_LIMIT}.` });
+				.json({ message: `The limit per page cannot exceed ${maxLimit}.` });
 		}
 
 		let data = [...ContactModel.index()];
