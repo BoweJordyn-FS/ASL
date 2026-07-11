@@ -1,0 +1,22 @@
+{
+	"dependencies": {
+		"@jworkman-fs/asl": "^1.2.43"
+	},
+	"name": "weektwo_restfulapi",
+	"version": "1.0.0",
+	"main": "index.js",
+	"devDependencies": {
+		"dotenv": "^17.4.2",
+		"express": "^5.2.1",
+		"jest": "^30.4.2",
+		"nodemon": "^3.1.14"
+	},
+	"scripts": {
+		"start": "node index.js",
+		"dev": "nodemon index.js",
+		"test": "jest"
+	},
+	"author": "",
+	"license": "ISC",
+	"description": ""
+}
