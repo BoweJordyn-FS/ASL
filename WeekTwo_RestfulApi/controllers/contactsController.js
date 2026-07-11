@@ -1,4 +1,9 @@
-const { ContactModel, Pager, sortContacts, filterContacts } = require('../model/Contacts');
+const {
+	ContactModel,
+	Pager,
+	sortContacts,
+	filterContacts,
+} = require('../model/Contacts');
 
 function sendError(res, e) {
 	res.status(e.statusCode || 500).json({ message: e.message });
@@ -11,8 +16,9 @@ exports.getAllContacts = (req, res) => {
 		const filterOperator = req.get('X-Filter-Operator');
 		const filterValue = req.get('X-Filter-Value');
 
-		let data = [...ContactModel.index()];
+		let data = ContactModel.index();
 
+		//  Filtering -> Sorting -> Pagination
 		if (filterBy) {
 			data = filterContacts(filterBy, filterOperator, filterValue, data);
 		}
@@ -21,15 +27,24 @@ exports.getAllContacts = (req, res) => {
 			data = sortContacts(data, sort, direction);
 		}
 
-		// Filtered results are returned in full; only the default listing is paginated.
-		if (!filterBy) {
-			const pager = new Pager(data, page, limit);
-			data = pager.results();
-		}
+		const pager = new Pager(data, page, limit);
 
-		res.json(data);
+		res.set('X-Page-Total', pager.total);
+		res.set('X-Page-Next', pager.next());
+		res.set('X-Page-Prev', pager.prev());
+		res.json(pager.results());
 	} catch (e) {
-		sendError(res, e);
+		switch (e.name) {
+			case 'InvalidEnumError':
+			case 'InvalidContactError':
+				return res.status(400).json({ message: e.message });
+			case 'PagerOutOfRangeError':
+				return res.status(416).json({ message: e.message });
+			case 'PagerLimitExceededError':
+				return res.status(400).json({ message: e.message });
+			default:
+				return res.status(500).json({ message: e.message });
+		}
 	}
 };
 
@@ -37,7 +52,22 @@ exports.getContactById = (req, res) => {
 	try {
 		res.json(ContactModel.show(req.params.id));
 	} catch (e) {
-		sendError(res, e);
+		switch (e.name) {
+			case 'InvalidContactError':
+				return res.status(400).json({
+					message: e.message,
+				});
+
+			case 'ContactNotFoundError':
+				return res.status(404).json({
+					message: e.message,
+				});
+
+			default:
+				return res.status(500).json({
+					message: e.message,
+				});
+		}
 	}
 };
 
@@ -46,7 +76,25 @@ exports.createContact = (req, res) => {
 		const contact = ContactModel.create(req.body);
 		res.status(303).location(`/v1/contacts/${contact.id}`).end();
 	} catch (e) {
-		sendError(res, e);
+		switch (e.name) {
+			case 'InvalidContactError':
+			case 'InvalidContactFieldError':
+				return res.status(422).json({
+					message: e.message,
+				});
+			case 'InvalidContactSchemaError':
+				return res.status(400).json({
+					message: e.message,
+				});
+			case 'DuplicateContactResourceError':
+				return res.status(400).json({
+					message: e.message,
+				});
+			default:
+				return res.status(500).json({
+					message: e.message,
+				});
+		}
 	}
 };
 
@@ -55,15 +103,45 @@ exports.updateContact = (req, res) => {
 		const contact = ContactModel.update(req.params.id, req.body);
 		res.json(contact);
 	} catch (e) {
-		sendError(res, e);
+		switch (e.name) {
+			case 'InvalidContactError':
+				return res.status(400).json({
+					message: e.message,
+				});
+
+			case 'ContactNotFoundError':
+				return res.status(404).json({
+					message: e.message,
+				});
+
+			default:
+				return res.status(500).json({
+					message: e.message,
+				});
+		}
 	}
 };
 
 exports.deleteContact = (req, res) => {
 	try {
 		ContactModel.remove(req.params.id);
-		res.status(204).end();
+		res.status(303).redirect('/contacts');
 	} catch (e) {
-		sendError(res, e);
+		switch (e.name) {
+			case 'InvalidContactError':
+				return res.status(400).json({
+					message: e.message,
+				});
+
+			case 'ContactNotFoundError':
+				return res.status(404).json({
+					message: e.message,
+				});
+
+			default:
+				return res.status(500).json({
+					message: e.message,
+				});
+		}
 	}
 };
