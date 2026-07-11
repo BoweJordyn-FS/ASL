@@ -5,9 +5,7 @@ const {
 	filterContacts,
 } = require('../model/Contacts');
 
-function sendError(res, e) {
-	res.status(e.statusCode || 500).json({ message: e.message });
-}
+const MAX_LIMIT = 20;
 
 exports.getAllContacts = (req, res) => {
 	try {
@@ -15,6 +13,18 @@ exports.getAllContacts = (req, res) => {
 		const filterBy = req.get('X-Filter-By');
 		const filterOperator = req.get('X-Filter-Operator');
 		const filterValue = req.get('X-Filter-Value');
+
+		if (direction && !['asc', 'desc'].includes(direction)) {
+			return res.status(400).json({
+				message: `"${direction}" is not a valid sort direction. Use "asc" or "desc".`,
+			});
+		}
+
+		if (limit !== undefined && Number(limit) > MAX_LIMIT) {
+			return res
+				.status(400)
+				.json({ message: `The limit per page cannot exceed ${MAX_LIMIT}.` });
+		}
 
 		let data = [...ContactModel.index()];
 
@@ -32,11 +42,14 @@ exports.getAllContacts = (req, res) => {
 		res.set('X-Page-Total', pager.total);
 		res.set('X-Page-Next', pager.next());
 		res.set('X-Page-Prev', pager.prev());
+		res.set('X-Results-Total', pager.total);
 		res.json(pager.results());
 	} catch (e) {
 		switch (e.name) {
 			case 'InvalidEnumError':
 			case 'InvalidContactError':
+			case 'InvalidContactSchemaError':
+			case 'InvalidOperatorError':
 				return res.status(400).json({ message: e.message });
 			case 'PagerOutOfRangeError':
 				return res.status(416).json({ message: e.message });
@@ -79,13 +92,7 @@ exports.createContact = (req, res) => {
 		switch (e.name) {
 			case 'InvalidContactError':
 			case 'InvalidContactFieldError':
-				return res.status(422).json({
-					message: e.message,
-				});
 			case 'InvalidContactSchemaError':
-				return res.status(400).json({
-					message: e.message,
-				});
 			case 'DuplicateContactResourceError':
 				return res.status(400).json({
 					message: e.message,
@@ -105,6 +112,8 @@ exports.updateContact = (req, res) => {
 	} catch (e) {
 		switch (e.name) {
 			case 'InvalidContactError':
+			case 'InvalidContactFieldError':
+			case 'InvalidContactSchemaError':
 				return res.status(400).json({
 					message: e.message,
 				});
@@ -125,7 +134,7 @@ exports.updateContact = (req, res) => {
 exports.deleteContact = (req, res) => {
 	try {
 		ContactModel.remove(req.params.id);
-		res.status(303).redirect('/contacts');
+		res.status(202).location('/v1/contacts').end();
 	} catch (e) {
 		switch (e.name) {
 			case 'InvalidContactError':
